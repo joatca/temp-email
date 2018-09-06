@@ -24,7 +24,7 @@ Example:
 	# maximum number of addresses that will be tracked matching a pattern - this is mainly to avoid a DOS attack
 	max-per-pattern 50
     
-    # any address beginning with "foo" gets sent to "bar@example.com", expiring after 48 hours
+    # any address beginning with "foo" gets sent to "bar@example.com", expiring 48 hours after first use
     /^foo/ diamond@example.com 48h
     
     # the same but only works 3 times:
