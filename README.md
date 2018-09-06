@@ -45,17 +45,17 @@ If configured like the example above:
 * give out an address like "foo1234@example.com" (in an online form, to a store cashier, to a person you don't trust with your regular email address, whatever)
 * Postfix receives an email to that address; it's not a real local address so it sends a query to `temp-email`
 * `temp-email` does not have the address in the database so it checks it against the patterns in the config file, finds that it matches `/^foo/`, so it:
-** records it in the database with an expiry date 48 hours in the future
-** replies to Postfix with the given target address `diamond@example.com`
+  * records it in the database with an expiry date 48 hours in the future
+  * replies to Postfix with the given target address `diamond@example.com`
 * Postfix accepts the mail, rewrites the destination address and delivers as normal
 
 The next time Postfix receives an email to this address it queries `temp-email` again. This time:
 * `temp-email` checks the database and finds an entry for `foo1224@example.com`. If the current time is earlier than the expiry date it:
-** returns `diamond@example.com` to Postfix
-** Postfix accepts the mail, rewrites the destination address and delivers as normal
+  * returns `diamond@example.com` to Postfix
+  * Postfix accepts the mail, rewrites the destination address and delivers as normal
 * ...otherwise...
-** returns _unknown address_ to Postfix
-** Postfix rejects the mail from the remote server
+  * returns _unknown address_ to Postfix
+  * Postfix rejects the mail from the remote server
 
 If you also give out "foo2345@example.com" it will get recorded separately in the database with its own expiry date. Up to 50 unexpired matching addresses will be tracked - if a 51st arrives temp-email will return "unknown address".
 
