@@ -1,0 +1,13 @@
+name: temp-email
+version: 0.1.0
+
+authors:
+  - Fraser McCrossan <fraser@mccrossan.ca>
+
+targets:
+  temp-email:
+    main: src/temp-email.cr
+
+crystal: 0.26.0
+
+license: MIT
