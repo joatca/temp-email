@@ -1,9 +1,12 @@
 require "socket"
 require "./temp-email/server.cr"
 require "./temp-email/messages.cr"
+require "./temp-email/config.cr"
 
 module TempEmail
   VERSION = "0.1.0"
+
+  config = Config.new
 
   data = {
     "foo" => "foo@bar.com",
