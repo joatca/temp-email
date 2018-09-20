@@ -20,10 +20,7 @@ Example:
 
     # this is the default port
     port 9099
-	
-	# maximum number of addresses that will be tracked matching a pattern - this is mainly to avoid a DOS attack
-	max-per-pattern 50
-    
+	    
     # any address beginning with "foo" gets sent to "bar@example.com", expiring 48 hours after first use
     /^foo/ diamond@example.com 48h
     
