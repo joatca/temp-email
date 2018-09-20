@@ -9,7 +9,7 @@ module TempEmail
   begin
     
     config = Config.new
-
+    
     data = {
       "foo" => "foo@bar.com",
       "bar" => "yes@no.com",

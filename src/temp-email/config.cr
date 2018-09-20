@@ -14,17 +14,40 @@ module TempEmail
   end
 
   class TempMatcher
-    @max_emails : UInt32?
-    @expiry_seconds : UInt32?
+    @destination : String?
     @regex : Regex
+    @max_emails : UInt32? # how many emails are allowed to this address?
+    @expiry_seconds : UInt32? # after how long does this address expire?
+    @forget_seconds : UInt32? # after how long is any record of this address forgotten?
 
-    property max_emails, expiry_seconds, regex
+    property max_emails, expiry_seconds, forget_seconds, regex, destination
     
     def initialize(pattern = "", @max_emails = nil, @expiry_seconds = nil)
       @regex = Regex.new(pattern)
     end
 
+    def set_defaults(other : self)
+      @max_emails, @expiry_seconds, @forget_seconds =
+                                    other.max_emails, other.expiry_seconds, other.forget_seconds
+    end
+    
     def set_parameter(parameter : String)
+      case parameter
+      when /^(\d+)$/
+        @expiry_seconds = $1.to_u32
+      when /^(\d+)m$/
+        @expiry_seconds = $1.to_u32 * 60
+      when /^(\d+)h$/
+        @expiry_seconds = $1.to_u32 * 60 * 60
+      when /^(\d+)d$/
+        @expiry_seconds = $1.to_u32 * 60 * 60 * 24
+      when /^(\d+)x$/
+        @max_emails = $1.to_u32
+      when /^!(\d+)d$/
+        @forget_seconds = $1.to_u32 * 60 * 60 * 24
+      else
+        raise ArgumentError.new("unknown parameter #{parameter}")
+      end
     end
       
   end
@@ -75,7 +98,10 @@ module TempEmail
               end
             when /^\/(.*)\/$/
               matcher = TempMatcher.new($1)
-              args.each do |arg|
+              matcher.set_defaults(default_matcher)
+              config_err(linenum, line, "need destination") unless args.size > 0
+              matcher.destination = args[0]
+              args[1..-1].each do |arg|
                 begin
                   matcher.set_parameter(arg)
                 rescue e : ArgumentError
