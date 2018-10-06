@@ -1,5 +1,7 @@
 # temp-email
 
+NOTE: WORK IN-PROGRESS, NOT YET READY FOR USE
+
 Do you often give out temporary email addresses to online services or in-person? Is it annoying to have to set them up manually each time? Want to have them auto-generated based on a regex pattern?
 
 temp-email provides a Postfix TCP map that dynamically generates temporary, expiring valid email addresses, so that you can pick one out of the air without having to configure it in advance, provided it matches a pattern. These temporary addresses can expire after a certain time, a certain number of uses, or both. After this temp-email will pretend that they are unknown, causing Postfix to reject any email sent to them. Finally, any of the expired addresses can be "aged out" and forgotten about after a long enough period of time so they will eventually work again.
