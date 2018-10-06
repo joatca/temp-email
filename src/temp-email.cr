@@ -2,6 +2,7 @@ require "socket"
 require "./temp-email/server.cr"
 require "./temp-email/messages.cr"
 require "./temp-email/config.cr"
+require "./temp-email/db.cr"
 
 module TempEmail
   VERSION = "0.1.0"
@@ -9,6 +10,8 @@ module TempEmail
   begin
     
     config = Config.new
+
+    db = TempEmailDB.new(config)
     
     data = {
       "foo" => "foo@bar.com",
@@ -75,7 +78,7 @@ module TempEmail
   rescue e : Exception
 
     if e.is_a?(Exception)
-      STDERR.puts "#{PROGRAM_NAME}: #{e.message}"
+      STDERR.puts "#{PROGRAM_NAME}: #{e.class}: #{e.message}"
     else
       raise e
     end

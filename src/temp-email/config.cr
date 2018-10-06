@@ -1,6 +1,7 @@
 module TempEmail
 
   lib C
+    # required to get home directories
     fun geteuid : UInt32
        
     struct Passwd
@@ -54,7 +55,10 @@ module TempEmail
        
   class Config
 
-    property port, matchers, uid, config_file
+    @config_file : String
+    @db : String
+    
+    property port, matchers, uid, config_file, db
     
     def initialize
       @port = 9099
@@ -62,13 +66,14 @@ module TempEmail
       @matchers = Array(TempMatcher).new
       
       @uid = C.geteuid
-      @config_file = if @uid == 0
-                        "/etc/temp-emailrc"
-                     else
-                       pw = C.getpwuid(@uid)
-                       raise "can't get home directory for UID #{@uid}" if pw == Pointer(C::Passwd).null
-                       String.new(pw.value.pw_dir) + "/.temp-emailrc"
-                     end
+      @config_file, @db = if @uid == 0
+                            [ "/etc/temp-emailrc", "/var/cache/temp-email/temp-email.db" ]
+                          else
+                            pw = C.getpwuid(@uid)
+                            raise "can't get home directory for UID #{@uid}" if pw == Pointer(C::Passwd).null
+                            homedir = String.new(pw.value.pw_dir)
+                            [ homedir + "/.temp-emailrc", homedir + "/.temp-email.db" ]
+                          end
       begin
         File.open(@config_file, "r") do |cfile|
           cfile.each_line.each_with_index do |line, linenum|

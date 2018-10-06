@@ -8,6 +8,10 @@ targets:
   temp-email:
     main: src/temp-email.cr
 
+dependencies:
+  sqlite3:
+    github: crystal-lang/crystal-sqlite3
+
 crystal: 0.26.0
 
 license: MIT
