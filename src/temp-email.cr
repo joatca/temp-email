@@ -12,11 +12,6 @@ module TempEmail
     config = Config.new
 
     db = TempEmailDB.new(config)
-    
-    data = {
-      "foo" => "foo@bar.com",
-      "bar" => "yes@no.com",
-    }
 
     channels = [] of Channel(Msg)
 
@@ -54,10 +49,21 @@ module TempEmail
             when :query
               case msg[1].chomp
               when /^get (\S+)$/i
-                if data.has_key?($1)
-                  { 200, data[$1].as(String) }
+                result = db.check_address($1)
+                case result[0]
+                when TempEmailDB::FOUND
+                  # we know about this address, return it
+                  { result[0], result[1].as(String) }
+                when TempEmailDB::EXPIRED, TempEmailDB::EXPENDED
+                  # we know about it but it has expired or run out of uses
+                  { result[0], "unknown" }
+                when TempEmailDB::UNKNOWN
+                  # here we'd do matching against all the rules and possibly create a new address
+                  # but just fail for now
+                  { TempEmailDB::UNKNOWN, "unknown" }
                 else
-                  { 500, "unknown" }
+                  # we shouldn't get here but currently not type-enforced
+                  { TempEmailDB::UNKNOWN, "unknown" }
                 end
               else
                 { 402, "bad request" }
@@ -77,7 +83,7 @@ module TempEmail
 
   rescue e : Exception
 
-    if e.is_a?(Exception)
+    if e.is_a?(ArgumentError)
       STDERR.puts "#{PROGRAM_NAME}: #{e.class}: #{e.message}"
     else
       raise e
