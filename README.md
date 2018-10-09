@@ -56,7 +56,7 @@ The next time Postfix receives an email to this address it queries `temp-email` 
   * returns _unknown address_ to Postfix
   * Postfix rejects the mail from the remote server
 
-If you also give out "foo2345@example.com" it will get recorded separately in the database with its own expiry date. Up to 50 unexpired matching addresses will be tracked - if a 51st arrives temp-email will return "unknown address".
+If you also give out "foo2345@example.com" it will get recorded separately in the database with its own expiry date.
 
 ### Postfix Configuration
 
