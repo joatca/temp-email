@@ -1,18 +1,6 @@
+require "./tempmatcher.cr"
+
 module TempEmail
-
-  lib C
-    # required to get home directories
-    fun geteuid : UInt32
-       
-    struct Passwd
-      pw_name, pw_passwd : LibC::Char*
-               pw_uid : LibC::UidT
-      pw_gid : LibC::GidT
-      pw_gecos, pw_dir, pw_shell : LibC::Char*
-    end
-
-    fun getpwuid(uid : UInt32) : Passwd*
-  end
 
   class TempMatcher
     @destination : String?
