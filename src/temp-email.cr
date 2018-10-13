@@ -37,10 +37,8 @@ module TempEmail
         channel = Channel(Msg).new
         channels << channel
         spawn Server.start(msg, channel)
-        STDERR.puts "Started server for new connection from #{msg.inspect}"
       when msg.is_a?(Nil)
         channels.delete_at(index)
-        STDERR.puts "Client index #{index} disconnected"
       when msg.is_a?(Data)
         STDERR.puts "Received query \"#{msg}\" from client #{index}"
         channels[index].send(
@@ -57,7 +55,7 @@ module TempEmail
                   { db_result[0], db_result[1].as(String) }
                 when TempEmailDB::EXPIRED, TempEmailDB::EXPENDED
                   # we know about it but it has expired or run out of uses
-                  { db_result[0], "unknown" }
+                  { TempEmailDB::UNKNOWN, "unknown" }
                 when TempEmailDB::UNKNOWN
                   # match against all the rules and possibly create a new address
                   # we need to figure out a way to evaluate to the string returned if one is, otherwise nil
@@ -65,7 +63,7 @@ module TempEmail
                   match = nil
                   config.matchers.each do |m|
                     match = m.check_match(address, db)
-                    if match
+                    unless match.nil?
                       break
                     end
                   end
@@ -79,14 +77,14 @@ module TempEmail
                   { TempEmailDB::UNKNOWN, "unknown" }
                 end
               else
-                { 402, "bad request" }
+                { TempEmailDB::ERROR, "bad request" }
               end
             else
               # we don't understand this symbol
-              { 401, "internal error" }
+              { TempEmailDB::ERROR, "internal error" }
             end
           else
-            { 403, "internal error" }
+            { TempEmailDB::ERROR, "internal error" }
           end
         )
       else
