@@ -8,10 +8,11 @@ module TempEmail
     @config_file : String
     @db : String
     
-    property port, matchers, uid, config_file, db
+    property port, remaining_grace, matchers, uid, config_file, db
     
     def initialize
       @port = 9099
+      @remaining_grace = 10
       default_matcher = TempMatcher.new
       @matchers = Array(TempMatcher).new
       
@@ -41,6 +42,14 @@ module TempEmail
                 raise ArgumentError.new if @port <= 0
               rescue ArgumentError
                 config_err(linenum, line, "port number must be a positive integer")
+              end
+            when "grace"
+              config_err(linenum, line, "need grace in seconds") unless args.size == 1
+              begin
+                @remaining_grace = args[0].to_i
+                raise ArgumentError.new if @remaining_grace < 1
+              rescue ArgumentError
+                config_err(linenum, line, "grace period must be at least one second")
               end
             when "*"
               config_err(linenum, line, "need at least one default parameter") unless args.size > 0

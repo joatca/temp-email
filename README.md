@@ -22,6 +22,9 @@ Example:
 
     # this is the default port
     port 9099
+	
+	# this is the default window in seconds in which multiple queries from Postfix are considered a single query
+	grace 10
 	    
     # any address beginning with "foo" gets sent to "bar@example.com", expiring 48 hours after first use
     /^foo/ diamond@example.com 48h
