@@ -49,18 +49,31 @@ module TempEmail
             when :query
               case msg[1].chomp
               when /^get (\S+)$/i
-                result = db.check_address($1)
-                case result[0]
+                address = $1.as(String)
+                db_result = db.check_address(address)
+                case db_result[0]
                 when TempEmailDB::FOUND
                   # we know about this address, return it
-                  { result[0], result[1].as(String) }
+                  { db_result[0], db_result[1].as(String) }
                 when TempEmailDB::EXPIRED, TempEmailDB::EXPENDED
                   # we know about it but it has expired or run out of uses
-                  { result[0], "unknown" }
+                  { db_result[0], "unknown" }
                 when TempEmailDB::UNKNOWN
-                  # here we'd do matching against all the rules and possibly create a new address
-                  # but just fail for now
-                  { TempEmailDB::UNKNOWN, "unknown" }
+                  # match against all the rules and possibly create a new address
+                  # we need to figure out a way to evaluate to the string returned if one is, otherwise nil
+                  match : String?
+                  match = nil
+                  config.matchers.each do |m|
+                    match = m.check_match(address, db)
+                    if match
+                      break
+                    end
+                  end
+                  if match.nil?
+                    { TempEmailDB::UNKNOWN, "unknown" }
+                  else
+                    { TempEmailDB::FOUND, match.as(String) }
+                  end
                 else
                   # we shouldn't get here but currently not type-enforced
                   { TempEmailDB::UNKNOWN, "unknown" }

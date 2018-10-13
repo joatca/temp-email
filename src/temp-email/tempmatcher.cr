@@ -34,20 +34,52 @@ module TempEmail
     
     def set_parameter(parameter : String)
       case parameter
-      when /^(\d+)$/
-        @expiry_seconds = $1.to_i64
-      when /^(\d+)m$/
-        @expiry_seconds = $1.to_i64 * 60
-      when /^(\d+)h$/
-        @expiry_seconds = $1.to_i64 * 60 * 60
-      when /^(\d+)d$/
-        @expiry_seconds = $1.to_i64 * 60 * 60 * 24
+      when /^(!)?(\d+)([smhd])?$/
+        time = case $3
+               when "m"
+                 $2.to_i64 * 60
+               when "h"
+                 $2.to_i64 * 60 * 60
+               when "d"
+                 $2.to_i64 * 60 * 60 * 24
+               else
+                 $2.to_i64
+               end
+        if $~[1]?
+          @forget_seconds = time
+        else
+          @expiry_seconds = time
+        end
       when /^(\d+)x$/
         @max_emails = $1.to_i64
-      when /^!(\d+)d$/
-        @forget_seconds = $1.to_i64 * 60 * 60 * 24
       else
         raise ArgumentError.new("unknown parameter #{parameter}")
+      end
+    end
+
+    def check_match(address : String, db : TempEmailDB) : String?
+      if @regex =~ address
+        # matches the address, create the record and return the destination address
+        now = Time.now.epoch
+        remaining = if @max_emails.nil?
+                      nil
+                    else
+                      @max_emails.as(Int64) - 1
+                    end
+        expiry = if @expiry_seconds.nil?
+                   nil
+                 else
+                   now + @expiry_seconds.as(Int64)
+                 end
+        forget = if @forget_seconds.nil?
+                   nil
+                 else
+                   now + @forget_seconds.as(Int64)
+                 end
+        db.add_address(address, @destination.as(String), expiry, forget, remaining)
+        @destination
+      else
+        nil
       end
     end
       
