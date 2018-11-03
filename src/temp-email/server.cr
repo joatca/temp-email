@@ -9,10 +9,11 @@ module TempEmail
       begin
         while query = client.gets
           puts "#{client.remote_address.address} received query #{query}"
-          ch.send({ :query, query })
+          ch.send(Data.new(:query, query))
           response = ch.receive
-          if response.is_a?(Data) && response[0].is_a?(Int32)
-            client.puts "#{response[0]} #{response[1]}"
+          puts "received response #{response} for client #{client.remote_address.address}"
+          if response.is_a?(Response)
+            client.puts "#{response.code} #{response.message}"
           else
             client.puts "400 internal error"
           end

@@ -42,49 +42,45 @@ module TempEmail
       when msg.is_a?(Data)
         STDERR.puts "Received query \"#{msg}\" from client #{index}"
         channels[index].send(
-          if msg[0].is_a?(Symbol)
-            case msg[0]
-            when :query
-              case msg[1].chomp
-              when /^get (\S+)$/i
-                address = $1.as(String)
-                db_result = db.check_address(address)
-                case db_result[0]
-                when TempEmailDB::FOUND
-                  # we know about this address, return it
-                  { db_result[0], db_result[1].as(String) }
-                when TempEmailDB::EXPIRED, TempEmailDB::EXPENDED
-                  # we know about it but it has expired or run out of uses
-                  { TempEmailDB::UNKNOWN, "unknown" }
-                when TempEmailDB::UNKNOWN
-                  # match against all the rules and possibly create a new address
-                  # we need to figure out a way to evaluate to the string returned if one is, otherwise nil
-                  match : String?
-                  match = nil
-                  config.matchers.each do |m|
-                    match = m.check_match(address, db)
-                    unless match.nil?
-                      break
-                    end
+          case msg.verb
+          when :query
+            case msg.value.chomp
+            when /^get (\S+)$/i
+              address = $1.as(String)
+              db_result = db.check_address(address)
+              case db_result[0]
+              when TempEmailDB::FOUND
+                # we know about this address, return it
+                Response.new(db_result[0], db_result[1].as(String))
+              when TempEmailDB::EXPIRED, TempEmailDB::EXPENDED
+                # we know about it but it has expired or run out of uses
+                Response.new(TempEmailDB::UNKNOWN, "unknown")
+              when TempEmailDB::UNKNOWN
+                # match against all the rules and possibly create a new address
+                # we need to figure out a way to evaluate to the string returned if one is, otherwise nil
+                match : String?
+                match = nil
+                config.matchers.each do |m|
+                  match = m.check_match(address, db)
+                  unless match.nil?
+                    break
                   end
-                  if match.nil?
-                    { TempEmailDB::UNKNOWN, "unknown" }
-                  else
-                    { TempEmailDB::FOUND, match.as(String) }
-                  end
+                end
+                if match.nil?
+                  Response.new(TempEmailDB::UNKNOWN, "unknown")
                 else
-                  # we shouldn't get here but currently not type-enforced
-                  { TempEmailDB::UNKNOWN, "unknown" }
+                  Response.new(TempEmailDB::FOUND, match.as(String))
                 end
               else
-                { TempEmailDB::ERROR, "bad request" }
+                # we shouldn't get here but currently not type-enforced
+                Response.new(TempEmailDB::UNKNOWN, "unknown")
               end
             else
-              # we don't understand this symbol
-              { TempEmailDB::ERROR, "internal error" }
+              Response.new(TempEmailDB::ERROR, "bad request")
             end
           else
-            { TempEmailDB::ERROR, "internal error" }
+            # we don't understand this symbol
+            Response.new(TempEmailDB::ERROR, "internal error")
           end
         )
       else
