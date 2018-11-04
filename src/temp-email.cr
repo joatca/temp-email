@@ -65,20 +65,17 @@ module TempEmail
               when TempEmailDB::UNKNOWN
                 # match against all the rules and possibly create a new address
                 # we need to figure out a way to evaluate to the string returned if one is, otherwise nil
-                match : String?
-                match = nil
+                match = Match.new(nil)
                 config.matchers.each do |m|
                   match = m.check_match(address, db)
-                  unless match.nil?
-                    break
-                  end
+                  break unless match.match.nil?
                 end
-                if match.nil?
+                if match.match.nil?
                   log.send("(no match) #{address}") # should we even log this?
                   Response.new(TempEmailDB::UNKNOWN, "unknown")
                 else
-                  log.send("(new) #{address}: #{match}")
-                  Response.new(TempEmailDB::FOUND, match.as(String))
+                  log.send("(new [#{match.info}]) #{address}: #{match.match}")
+                  Response.new(TempEmailDB::FOUND, match.match.as(String))
                 end
               else
                 # we shouldn't get here but currently not type-enforced

@@ -57,29 +57,55 @@ module TempEmail
       end
     end
 
-    def check_match(address : String, db : TempEmailDB) : String?
+    def secs_to_s(time : Int64)
+      negative = time < 0
+      time = -time if negative
+      s = "#{sprintf("%02d", time % 60)}"
+      time /= 60
+      if time > 0
+        s = "#{sprintf("%02d", time % 60)}:#{s}"
+        time /= 60
+        if time > 0
+          s = "#{sprintf("%02d", time % 24)}:#{s}"
+          time /= 24
+          if time > 0
+            s = "#{time}d-#{s}"
+          end
+        end
+      end
+      s
+    end
+
+    def check_match(address : String, db : TempEmailDB) : Match
       if @regex =~ address
         # matches the address, create the record and return the destination address
+        info = Array(String).new
         now = Time.now.epoch
         remaining = if @max_emails.nil?
                       nil
                     else
-                      @max_emails.as(Int64) - 1
+                      r = @max_emails.as(Int64) - 1
+                      info << "#{r} remaining"
+                      r
                     end
         expiry = if @expiry_seconds.nil?
                    nil
                  else
-                   now + @expiry_seconds.as(Int64)
+                   es = @expiry_seconds.as(Int64)
+                   info << "expires #{secs_to_s(es)}"
+                   now + es
                  end
         forget = if @forget_seconds.nil?
                    nil
                  else
-                   now + @forget_seconds.as(Int64)
+                   fs = @forget_seconds.as(Int64)
+                   info << "forgotten in #{secs_to_s(fs)}"
+                   now + fs
                  end
         db.add_address(address, @destination.as(String), expiry, forget, remaining)
-        @destination
+        Match.new(@destination, info.join(", "))
       else
-        nil
+        Match.new(nil)
       end
     end
       
