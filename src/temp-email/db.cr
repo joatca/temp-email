@@ -20,7 +20,7 @@ module TempEmail
     end
 
     # returns the code and the value
-    def check_address(address : String) : Tuple(Int32, String?)
+    def check_address(address : String) : Tuple(Int32, String?, String)
       begin
         result = @db.query_one("select destination, expiry, forget, remaining_uses from addresses where address = ?",
                                address,
@@ -32,14 +32,14 @@ module TempEmail
           if now > forget
             # if the forget time has expired then pretend we never found it
             @db.exec("delete from addresses where address = ?", address)
-            return { UNKNOWN, nil }
-            # returning unknonw lets the matcher recreate a new record if it still exists
+            return { UNKNOWN, nil, "forgotten" }
+            # returning unknown lets the matcher recreate a new record if it still exists
           end
         end
         if expiry.is_a?(Int64)
           if Time.now.epoch > expiry
             # if it has expired (but not been forgotten) pretend it's unknown but keep the record around
-            return { EXPIRED, nil }
+            return { EXPIRED, nil, "expired" }
           end
         end
         if remaining_uses.is_a?(Int64)
@@ -59,19 +59,19 @@ module TempEmail
               end
             end
             @db.exec("commit")
-            return { FOUND, destination }
+            return { FOUND, destination, "valid, #{remaining_uses} remaining" }
           else
             # address exists but we've run out of uses
-            return { EXPENDED, nil }
+            return { EXPENDED, nil, "expended" }
           end
         end
-        return { FOUND, destination }
+        return { FOUND, destination, "valid" }
       rescue DB::Error
-        return { UNKNOWN, nil }
+        return { UNKNOWN, nil, "error" }
       end
       # we should never get here if the rest of the code maintains DB integrity, but return something
       # to keep the type system happy
-      return { UNKNOWN, nil }
+      return { UNKNOWN, nil, "error" }
     end
 
     def add_address(address : String, destination : String, expiry : Int64?, forget : Int64?, remaining_uses : Int64?)

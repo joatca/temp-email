@@ -3,6 +3,7 @@ require "./temp-email/server.cr"
 require "./temp-email/messages.cr"
 require "./temp-email/config.cr"
 require "./temp-email/db.cr"
+require "./temp-email/logger.cr"
 
 module TempEmail
   VERSION = "0.1.0"
@@ -13,6 +14,11 @@ module TempEmail
 
     db = TempEmailDB.new(config)
 
+    log = Channel(String).new(10) # give it a wee buffer
+    spawn Logger.start(log)
+
+    log.send("started")
+    
     channels = [] of Channel(Msg)
 
     new_connections = Channel(Msg).new # make the channel on which we receive new connections
@@ -40,7 +46,6 @@ module TempEmail
       when msg.is_a?(Nil)
         channels.delete_at(index)
       when msg.is_a?(Data)
-        STDERR.puts "Received query \"#{msg}\" from client #{index}"
         channels[index].send(
           case msg.verb
           when :query
@@ -51,9 +56,11 @@ module TempEmail
               case db_result[0]
               when TempEmailDB::FOUND
                 # we know about this address, return it
+                log.send("(#{db_result[2]}) #{address}: #{db_result[1]}")
                 Response.new(db_result[0], db_result[1].as(String))
               when TempEmailDB::EXPIRED, TempEmailDB::EXPENDED
                 # we know about it but it has expired or run out of uses
+                log.send("(#{db_result[2]}) #{address}")
                 Response.new(TempEmailDB::UNKNOWN, "unknown")
               when TempEmailDB::UNKNOWN
                 # match against all the rules and possibly create a new address
@@ -67,8 +74,10 @@ module TempEmail
                   end
                 end
                 if match.nil?
+                  log.send("(no match) #{address}") # should we even log this?
                   Response.new(TempEmailDB::UNKNOWN, "unknown")
                 else
+                  log.send("(new) #{address}: #{match}")
                   Response.new(TempEmailDB::FOUND, match.as(String))
                 end
               else
@@ -84,7 +93,7 @@ module TempEmail
           end
         )
       else
-        STDERR.puts "Unknown request #{msg.inspect} #{msg.class}"
+        log.send "Unknown request #{msg.inspect} #{msg.class}"
       end
     end
 
