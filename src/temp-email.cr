@@ -25,7 +25,7 @@ module TempEmail
 
     # Fiber that listens for connections
     spawn do
-      server = TCPServer.new(12345)
+      server = TCPServer.new(config.port)
       while client = server.accept?
         new_connections.send(client)
       end
